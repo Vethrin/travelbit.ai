@@ -6,8 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Dynamically determine the backend URL based on the current host
     const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
 
-    console.log('Backend URL:', backendUrl); // Debug: Log the backend URL
-
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const dream = document.getElementById('dream').value;
@@ -21,18 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ dream }),
             });
 
-            // Debug: Log the response status and headers
-            console.log('Response Status:', response.status);
-            console.log('Response Headers:', [...response.headers.entries()]);
-
-            // Check if the response is OK (status 200-299)
-            if (!response.ok) {
-                const text = await response.text();
-                console.error('Response Text:', text); // Log the raw response
-                throw new Error(`HTTP error! Status: ${response.status}, Body: ${text}`);
-            }
-
-            // Try to parse the response as JSON
             const itinerary = await response.json();
             if (itinerary.error) throw new Error(itinerary.error);
 
@@ -91,16 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ destination: itinerary.destination || dream }),
             });
 
-            // Debug: Log the image response status and headers
-            console.log('Image Response Status:', imageResponse.status);
-            console.log('Image Response Headers:', [...imageResponse.headers.entries()]);
-
-            if (!imageResponse.ok) {
-                const imageText = await imageResponse.text();
-                console.error('Image Response Text:', imageText);
-                throw new Error(`Image HTTP error! Status: ${imageResponse.status}, Body: ${imageText}`);
-            }
-
             const imageData = await imageResponse.json();
             const imageUrl = imageData.image || 'https://via.placeholder.com/150?text=No+Image';
 
@@ -123,16 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         },
                         body: JSON.stringify({ dream, feedback }),
                     });
-
-                    // Debug: Log the updated response status and headers
-                    console.log('Updated Response Status:', updatedResponse.status);
-                    console.log('Updated Response Headers:', [...updatedResponse.headers.entries()]);
-
-                    if (!updatedResponse.ok) {
-                        const updatedText = await updatedResponse.text();
-                        console.error('Updated Response Text:', updatedText);
-                        throw new Error(`Updated HTTP error! Status: ${updatedResponse.status}, Body: ${updatedText}`);
-                    }
 
                     const updatedItinerary = await updatedResponse.json();
                     if (updatedItinerary.error) throw new Error(updatedItinerary.error);

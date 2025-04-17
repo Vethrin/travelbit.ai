@@ -1,15 +1,13 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-const cors = require('cors'); // Add cors
 require('dotenv').config();
 
 // Initialize Express app
 const app = express();
 const port = process.env.PORT || 3000; // Use Render's assigned port
 
-// Middleware to serve static files, parse JSON requests, and enable CORS
-app.use(cors()); // Enable CORS for all routes
+// Middleware to serve static files and parse JSON requests
 app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.json());
 
@@ -300,12 +298,6 @@ app.post('/generate-image', async (req, res) => {
         console.error('Error in /generate-image:', error.response ? error.response.data : error.message);
         res.status(500).json({ error: 'Failed to generate image. Check server logs for details.' });
     }
-});
-
-// Error handling middleware to catch unhandled errors
-app.use((err, req, res, next) => {
-    console.error('Unhandled error:', err.stack);
-    res.status(500).json({ error: 'Internal server error' });
 });
 
 // Start the server
