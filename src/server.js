@@ -5,13 +5,13 @@ require('dotenv').config();
 
 // Initialize Express app
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000; // Use Render's assigned port
 
 // Middleware to serve static files and parse JSON requests
 app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.json());
 
-// Load API keys from .env
+// Load API keys from environment variables
 const XAI_API_KEY = process.env.XAI_API_KEY;
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const XAI_API_URL = 'https://api.x.ai/v1/chat/completions';

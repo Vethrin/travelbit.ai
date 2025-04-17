@@ -1,144 +1,141 @@
-// Load recent searches when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    displayRecentSearches();
-});
-
-document.getElementById('travel-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const dream = document.getElementById('dream').value;
+    const form = document.getElementById('travel-form');
     const resultDiv = document.getElementById('result');
-    resultDiv.innerHTML = '<p>Loading...</p>';
-
-    await generateItinerary(dream, resultDiv);
-});
-
-// Function to generate or tweak the itinerary
-async function generateItinerary(dream, resultDiv, feedback = '') {
-    try {
-        const response = await fetch('/generate-itinerary', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ dream, feedback })
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-            resultDiv.innerHTML = `<p>Error generating itinerary: ${data.error}</p>`;
-            return;
-        }
-
-        // Store the destination in localStorage
-        storeRecentSearch(data.destination);
-
-        // Render the itinerary with a destination picture
-        let html = `
-            <h3>${data.destination} Itinerary for ${data.group}</h3>
-            <img src="${data.image}" alt="${data.destination}" class="destination-image">
-            <p><strong>Starting Point:</strong> ${data.startingPoint}</p>
-            <p><strong>Duration:</strong> ${data.days} days</p>
-            <p><strong>Estimated Cost:</strong> ${data.cost}</p>
-        `;
-
-        data.itinerary.forEach(day => {
-            html += `
-                <div class="day">
-                    <h4>Day ${day.day}: ${day.location}</h4>
-                    <p><strong>Accommodation:</strong> 
-                        ${day.accommodation.link ? `<a href="${day.accommodation.link}" target="_blank">${day.accommodation.name}</a>` : day.accommodation.name}
-                    </p>
-                    <p><strong>Route:</strong> ${day.route.details}
-                        ${day.route.link ? ` (<a href="${day.route.link}" target="_blank">View Route</a>)` : ''}
-                    </p>
-                    <p><strong>Activities:</strong></p>
-                    <ul>
-                        ${day.activities.map(activity => `
-                            <li>${activity.name}${activity.suggestion ? ` - <em>${activity.suggestion}</em>` : ''}</li>
-                        `).join('')}
-                    </ul>
-                </div>
-            `;
-        });
-
-        // Add feedback form at the bottom
-        html += `
-            <div id="feedback-form">
-                <h3>Tweak Your Itinerary</h3>
-                <form id="tweak-form">
-                    <label for="feedback">What would you like to change? (e.g., "Add more hiking activities", "Reduce the budget")</label>
-                    <textarea id="feedback" name="feedback" rows="4" required></textarea>
-                    <button type="submit">Submit Feedback</button>
-                </form>
-            </div>
-        `;
-
-        resultDiv.innerHTML = html;
-
-        // Add event listener for the feedback form
-        document.getElementById('tweak-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const feedback = document.getElementById('feedback').value;
-            resultDiv.innerHTML = '<p>Loading updated itinerary...</p>';
-            await generateItinerary(dream, resultDiv, feedback);
-        });
-
-        // Update the recent searches display
-        displayRecentSearches();
-    } catch (error) {
-        resultDiv.innerHTML = `<p>Error generating itinerary: ${error.message}</p>`;
-    }
-}
-
-// Function to store recent searches in localStorage
-function storeRecentSearch(destination) {
-    let recentSearches = JSON.parse(localStorage.getItem('recentSearches')) || [];
-    // Avoid duplicates
-    if (!recentSearches.includes(destination)) {
-        recentSearches.unshift(destination); // Add to the beginning
-        if (recentSearches.length > 3) {
-            recentSearches = recentSearches.slice(0, 3); // Keep only the latest 3
-        }
-        localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
-    }
-}
-
-// Function to display recent searches with images
-async function displayRecentSearches() {
     const recentSearchesDiv = document.getElementById('recent-searches');
-    const recentSearches = JSON.parse(localStorage.getItem('recentSearches')) || [];
 
-    if (recentSearches.length === 0) {
-        recentSearchesDiv.innerHTML = '<p>No recent searches yet.</p>';
-        return;
-    }
+    // Dynamically determine the backend URL based on the current host
+    const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
 
-    let html = '<div class="search-items">';
-    for (const destination of recentSearches) {
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const dream = document.getElementById('dream').value;
+
         try {
-            const response = await fetch('/generate-image', {
+            const response = await fetch(`${backendUrl}/api/itinerary`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ destination })
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ dream }),
             });
 
-            const data = await response.json();
-            if (data.error) {
-                console.error(`Error fetching image for ${destination}: ${data.error}`);
-                continue;
+            const itinerary = await response.json();
+            if (itinerary.error) throw new Error(itinerary.error);
+
+            let html = '<h2>Your Itinerary</h2>';
+            if (itinerary.imageUrl) {
+                html += `<img src="${itinerary.imageUrl}" alt="Destination Image" class="destination-image">`;
+            }
+            if (itinerary.destination) {
+                html += `<h3>${itinerary.destination}</h3>`;
+            }
+            if (itinerary.accommodation) {
+                html += `<p><strong>Accommodation:</strong> ${itinerary.accommodation}</p>`;
+            }
+            if (itinerary.route) {
+                html += `<p><strong>Route:</strong> ${itinerary.route}</p>`;
+            }
+            if (itinerary.activities && itinerary.activities.length > 0) {
+                html += '<h3>Activities</h3><ul>';
+                itinerary.activities.forEach(activity => {
+                    html += `<li>${activity}</li>`;
+                });
+                html += '</ul>';
             }
 
+            // Feedback form for tweaking the itinerary
             html += `
-                <div class="search-item">
-                    <img src="${data.image}" alt="${destination}" class="search-image">
-                    <p>${destination}</p>
+                <div id="feedback-form">
+                    <h3>Tweak Your Itinerary</h3>
+                    <form id="tweak-form">
+                        <label for="feedback">What would you like to change?</label>
+                        <textarea id="feedback" name="feedback" rows="4" required></textarea>
+                        <button type="submit">Submit Feedback</button>
+                    </form>
                 </div>
             `;
-        } catch (error) {
-            console.error(`Error fetching image for ${destination}: ${error.message}`);
-        }
-    }
-    html += '</div>';
 
-    recentSearchesDiv.innerHTML = html;
-}
+            resultDiv.innerHTML = html;
+
+            // Add to recent searches
+            let recentSearches = JSON.parse(localStorage.getItem('recentSearches')) || [];
+            const imageResponse = await fetch(`${backendUrl}/api/image`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ destination: itinerary.destination || dream }),
+            });
+            const imageData = await imageResponse.json();
+            const imageUrl = imageData.imageUrl || 'https://via.placeholder.com/150?text=No+Image';
+
+            recentSearches.unshift({ destination: itinerary.destination || dream, imageUrl });
+            if (recentSearches.length > 3) recentSearches.pop();
+            localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
+            displayRecentSearches();
+
+            // Handle feedback form submission
+            const tweakForm = document.getElementById('tweak-form');
+            tweakForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const feedback = document.getElementById('feedback').value;
+                const updatedDream = `${dream} - Feedback: ${feedback}`;
+
+                const updatedResponse = await fetch(`${backendUrl}/api/itinerary`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ dream: updatedDream }),
+                });
+
+                const updatedItinerary = await updatedResponse.json();
+                if (updatedItinerary.error) throw new Error(updatedItinerary.error);
+
+                let updatedHtml = '<h2>Your Updated Itinerary</h2>';
+                if (updatedItinerary.imageUrl) {
+                    updatedHtml += `<img src="${updatedItinerary.imageUrl}" alt="Destination Image" class="destination-image">`;
+                }
+                if (updatedItinerary.destination) {
+                    updatedHtml += `<h3>${updatedItinerary.destination}</h3>`;
+                }
+                if (updatedItinerary.accommodation) {
+                    updatedHtml += `<p><strong>Accommodation:</strong> ${updatedItinerary.accommodation}</p>`;
+                }
+                if (updatedItinerary.route) {
+                    updatedHtml += `<p><strong>Route:</strong> ${updatedItinerary.route}</p>`;
+                }
+                if (updatedItinerary.activities && updatedItinerary.activities.length > 0) {
+                    updatedHtml += '<h3>Activities</h3><ul>';
+                    updatedItinerary.activities.forEach(activity => {
+                        updatedHtml += `<li>${activity}</li>`;
+                    });
+                    updatedHtml += '</ul>';
+                }
+
+                resultDiv.innerHTML = updatedHtml;
+            });
+
+        } catch (error) {
+            resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+        }
+    });
+
+    function displayRecentSearches() {
+        const recentSearches = JSON.parse(localStorage.getItem('recentSearches')) || [];
+        let html = '<div class="search-items">';
+        recentSearches.forEach(search => {
+            html += `
+                <div class="search-item">
+                    <img src="${search.imageUrl}" alt="${search.destination}" class="search-image">
+                    <p>${search.destination}</p>
+                </div>
+            `;
+        });
+        html += '</div>';
+        recentSearchesDiv.innerHTML = html;
+    }
+
+    // Display recent searches on page load
+    displayRecentSearches();
+});
