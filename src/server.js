@@ -1,13 +1,15 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const cors = require('cors'); // Add cors
 require('dotenv').config();
 
 // Initialize Express app
 const app = express();
 const port = process.env.PORT || 3000; // Use Render's assigned port
 
-// Middleware to serve static files and parse JSON requests
+// Middleware to serve static files, parse JSON requests, and enable CORS
+app.use(cors()); // Enable CORS for all routes
 app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.json());
 
