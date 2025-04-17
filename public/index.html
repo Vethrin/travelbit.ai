@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Itinerary Planner</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
+    <script id="google-maps-script"></script>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <nav>
+                <a href="#home">Home</a>
+                <a href="#about">About</a>
+                <a href="#contact">Contact</a>
+            </nav>
+            <div class="logo">
+                <img src="images/logo.png" alt="Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/150x150?text=Fallback+Logo';">
+            </div>
+        </div>
+    </header>
+
+    <div class="hero">
+        <div class="hero-content">
+            <h1>Plan Your Dream Trip</h1>
+            <p>Create a personalized itinerary with ease!</p>
+        </div>
+    </div>
+
+    <main>
+        <section id="input-form">
+            <h2>Your Dream Holiday</h2>
+            <form id="travel-form">
+                <label for="dream">Tell us about your dream holiday:</label>
+                <textarea id="dream" name="dream" rows="4" required></textarea>
+                <button type="submit">Generate Itinerary</button>
+            </form>
+        </section>
+
+        <section id="itinerary-output">
+            <div id="result"></div>
+        </section>
+
+        <section id="travel-ideas">
+            <h2>Travel Ideas</h2>
+            <div id="recent-searches"></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2025 Travel Itinerary Planner. All rights reserved.</p>
+    </footer>
+</body>
+</html>
