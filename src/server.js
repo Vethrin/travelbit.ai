@@ -300,6 +300,12 @@ app.post('/generate-image', async (req, res) => {
     }
 });
 
+// Error handling middleware to catch unhandled errors
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err.stack);
+    res.status(500).json({ error: 'Internal server error' });
+});
+
 // Start the server
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
