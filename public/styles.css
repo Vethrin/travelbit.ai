@@ -248,43 +248,45 @@ h1, h2, h3, h4 {
 #travel-ideas .search-items {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 15px;
+    gap: 20px;
+    justify-content: center;
 }
 
 #travel-ideas .search-item {
-    width: 30%;
-    min-width: 150px;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 10px;
-    border-radius: 4px;
+    width: 200px;
     text-align: center;
+}
+
+#travel-ideas .search-item a {
+    text-decoration: none;
+    color: #fff;
+    display: block;
+    transition: transform 0.3s;
 }
 
 #travel-ideas .search-image {
     width: 100%;
-    height: 200px;
+    height: 150px;
     object-fit: cover;
     border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     transition: transform 0.3s;
 }
 
-#travel-ideas .search-image:hover {
+#travel-ideas .search-item:hover .search-image {
     transform: scale(1.05);
 }
 
 #travel-ideas .search-item p {
-    margin: 5px 0 0;
-    text-align: center;
-    color: #fff;
+    margin: 10px 0 0;
     font-size: 1em;
+    color: #fff;
 }
 
 footer {
     text-align: center;
     padding: 20px;
-    background-color:#0c6980;
+    background-color: #0c6980;
     color: white;
     position: relative;
     bottom: 0;
