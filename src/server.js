@@ -21,7 +21,7 @@ const travelIdeas = [
   
   {
     destination: 'Asturias',
-    imageUrl: '/images/Asturias.png', // PNG in public/images/
+    imageUrl: '/public/images/Asturias.png', // PNG in public/images/
     xThreadUrl: 'https://x.com/TravelbitAi/status/1914676760664248391', // Replace with actual X thread URL
   },
 ];
