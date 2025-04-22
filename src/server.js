@@ -18,20 +18,11 @@ const XAI_API_URL = 'https://api.x.ai/v1/chat/completions';
 
 // Manually curated travel ideas (update with PNG file paths from public/images/)
 const travelIdeas = [
+  
   {
-    destination: 'Paris',
-    imageUrl: '/images/paris.png', // PNG in public/images/
-    xThreadUrl: 'https://x.com/username/status/123456789', // Replace with actual X thread URL
-  },
-  {
-    destination: 'Tokyo',
-    imageUrl: '/images/tokyo.png', // PNG in public/images/
-    xThreadUrl: 'https://x.com/username/status/987654321', // Replace with actual X thread URL
-  },
-  {
-    destination: 'Bali',
-    imageUrl: '/images/bali.png', // PNG in public/images/
-    xThreadUrl: 'https://x.com/username/status/111222333', // Replace with actual X thread URL
+    destination: 'Asturias',
+    imageUrl: '/images/Asturias.png', // PNG in public/images/
+    xThreadUrl: 'https://x.com/TravelbitAi/status/1914676760664248391', // Replace with actual X thread URL
   },
 ];
 
