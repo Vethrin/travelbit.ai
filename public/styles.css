@@ -32,8 +32,8 @@ header {
 .logo-img {
     max-height: 250px; /* Use max-height to prevent stretching */
     width: auto;
-    vertical-align: middle;
     display: block; /* Ensure the image is visible */
+    /* Removed vertical-align: middle; as it’s invalid with display: block */
 }
 
 nav {
