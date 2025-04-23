@@ -1,11 +1,12 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs').promises; // Use promises for async file operations
 require('dotenv').config();
 
 // Initialize Express app
 const app = express();
-const port = process.env.PORT || 3000; // Use Render's assigned port
+const port = process.env.PORT || 3000;
 
 // Middleware to serve static files and parse JSON requests
 app.use(express.static(path.join(__dirname, '../public')));
@@ -15,14 +16,20 @@ app.use(express.json());
 const XAI_API_KEY = process.env.XAI_API_KEY;
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const XAI_API_URL = 'https://api.x.ai/v1/chat/completions';
+const XAI_IMAGE_API_URL = 'https://api.x.ai/v1/images/generations'; // Aurora endpoint
 
-// Manually curated travel ideas (update with PNG file paths from public/images/)
+// Ensure the images directory exists
+const imagesDir = path.join(__dirname, '../public/images');
+fs.mkdir(imagesDir, { recursive: true }).catch((err) => {
+  console.error('Error creating images directory:', err);
+});
+
+// Manually curated travel ideas
 const travelIdeas = [
-  
   {
     destination: 'Asturias',
-    imageUrl: '/images/Asturias.png', // PNG in public/images/
-    xThreadUrl: 'https://x.com/TravelbitAi/status/1914676760664248391', // Replace with actual X thread URL
+    imageUrl: '/images/Asturias.png',
+    xThreadUrl: 'https://x.com/TravelbitAi/status/1914676760664248391',
   },
 ];
 
@@ -56,7 +63,6 @@ app.post('/generate-itinerary', async (req, res) => {
             Create a detailed travel itinerary based on this dream holiday description: "${dream}"
         `;
 
-    // Add feedback to the prompt if provided
     if (feedback && typeof feedback === 'string' && feedback.trim()) {
       prompt += `\nAdjust the itinerary based on this feedback: "${feedback}"`;
     }
@@ -88,7 +94,7 @@ app.post('/generate-itinerary', async (req, res) => {
             }
         `;
 
-    // Make request to Grok API for the itinerary
+    // Step 1: Generate the itinerary using xAI API
     const grokResponse = await axios.post(
       XAI_API_URL,
       {
@@ -129,18 +135,53 @@ app.post('/generate-itinerary', async (req, res) => {
       return res.status(500).json({ error: 'Invalid itinerary structure received' });
     }
 
-    // Enhance itinerary with links and suggestions
+    // Step 2: Extract the destination for image generation
+    const destination = itinerary.destination || 'a beautiful destination';
+
+    // Step 3: Generate an image for the destination using xAI API (Aurora model)
+    let imageUrl;
+    try {
+      const imageResponse = await axios.post(
+        XAI_IMAGE_API_URL,
+        {
+          model: 'aurora',
+          prompt: `A stunning photorealistic image of ${destination}, showcasing its iconic landmarks and vibrant culture, suitable for a travel itinerary.`,
+          n: 1,
+          size: '1024x768', // 4:3 aspect ratio, matches Grok's default
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${XAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const tempImageUrl = imageResponse.data.data[0].url;
+
+      // Step 4: Download the image and save it locally
+      const imageFileName = `${destination.toLowerCase().replace(/\s+/g, '-')}-itinerary.png`;
+      const imagePath = path.join(imagesDir, imageFileName);
+      const imageData = await axios.get(tempImageUrl, { responseType: 'arraybuffer' });
+      await fs.writeFile(imagePath, imageData.data);
+
+      // Step 5: Set the local image URL
+      imageUrl = `/images/${imageFileName}`;
+    } catch (error) {
+      console.error('Error generating or saving image:', error.response ? error.response.data : error.message);
+      imageUrl = '/images/placeholder.png'; // Fallback image
+    }
+
+    // Step 6: Enhance itinerary with links and suggestions
     for (let i = 0; i < itinerary.itinerary.length; i++) {
       let day = itinerary.itinerary[i];
 
-      // Ensure required fields exist
       day.location = day.location || 'Unknown Location';
       day.accommodation = day.accommodation || { name: 'Not Specified' };
       day.accommodation.name = day.accommodation.name || 'Not Specified';
       day.route = day.route || { details: 'No route specified' };
       day.activities = day.activities || [];
 
-      // Generate Google Maps route link with waypoints, skipping "home"
       let origin, destination;
       if (i === 0) {
         origin = itinerary.startingPoint;
@@ -149,46 +190,38 @@ app.post('/generate-itinerary', async (req, res) => {
       }
       destination = day.location;
 
-      // Skip route link if origin or destination is "home" or invalid
       if (origin.toLowerCase() !== 'home' && destination.toLowerCase() !== 'home' && origin && destination) {
-        // Improved string cleaning: remove special characters, trim, and encode spaces
         const cleanString = (str) => {
           return str
-            .replace(/[^a-zA-Z0-9\s-,.]/g, '') // Keep letters, numbers, spaces, hyphens, commas, and periods
-            .trim() // Remove leading/trailing spaces
-            .replace(/\s+/g, ' '); // Replace multiple spaces with a single space
+            .replace(/[^a-zA-Z0-9\s-,.]/g, '')
+            .trim()
+            .replace(/\s+/g, ' ');
         };
 
         origin = cleanString(origin);
         destination = cleanString(destination);
 
-        // Only generate the link if both origin and destination are non-empty after cleaning
         if (origin && destination) {
           const encodedOrigin = encodeURIComponent(origin);
           const encodedDestination = encodeURIComponent(destination);
           day.route.link = `https://www.google.com/maps/dir/?api=1&origin=${encodedOrigin}&destination=${encodedDestination}&travelmode=driving&key=${GOOGLE_MAPS_API_KEY}`;
         } else {
-          day.route.link = null; // No link if origin or destination is empty
+          day.route.link = null;
         }
       } else {
-        day.route.link = null; // No link if "home" is involved or if invalid
+        day.route.link = null;
       }
 
-      // Generate accommodation links, skipping if location is "home" or if Day 1 location matches startingPoint
       const isDay1AtStartingPoint = i === 0 && day.location.toLowerCase() === itinerary.startingPoint.toLowerCase();
       if (day.location.toLowerCase() !== 'home' && !isDay1AtStartingPoint) {
         const hotelName = day.accommodation.name.toLowerCase();
         const safeLocation = day.location.toLowerCase().replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-');
-        // Generic link to Booking.com for any hotel
-        day.accommodation.link = `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(
-          hotelName + ' ' + safeLocation
-        )}`;
+        day.accommodation.link = `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(hotelName + ' ' + safeLocation)}`;
       } else {
-        day.accommodation.link = null; // No link if location is "home" or Day 1 at starting point
-        day.accommodation.name = 'N/A'; // Set accommodation to N/A
+        day.accommodation.link = null;
+        day.accommodation.name = 'N/A';
       }
 
-      // Generate activity suggestions, filtering out irrelevant ones
       day.activities = day.activities
         .filter((activity) => {
           const activityName = activity.name.toLowerCase();
@@ -198,7 +231,6 @@ app.post('/generate-itinerary', async (req, res) => {
           const activityName = activity.name.toLowerCase();
           let suggestion = '';
 
-          // Generic suggestions based on activity type
           if (activityName.includes('museum') || activityName.includes('exhibition')) {
             suggestion = 'Spend a couple of hours exploring; check for guided tours or audio guides for a deeper experience.';
           } else if (activityName.includes('hiking') || activityName.includes('hike')) {
@@ -230,8 +262,8 @@ app.post('/generate-itinerary', async (req, res) => {
         });
     }
 
-    // Send the enhanced itinerary to the client
-    res.json(itinerary);
+    // Step 7: Send the enhanced itinerary with the image URL
+    res.json({ ...itinerary, imageUrl });
   } catch (error) {
     console.error('Error generating itinerary:', error.response ? error.response.data : error.message);
     res.status(500).json({ error: 'Failed to generate itinerary. Check server logs for details.' });
