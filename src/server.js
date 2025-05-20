@@ -138,13 +138,13 @@ app.post('/generate-itinerary', async (req, res) => {
     // Step 2: Extract the destination for image generation
     const destination = itinerary.destination || 'a beautiful destination';
 
-    // Step 3: Generate an image for the destination using xAI API (Aurora model)
+    // Step 3: Generate an image for the destination using xAI API (grok-2-image-1212)
     let imageUrl;
     try {
       const imageResponse = await axios.post(
         XAI_IMAGE_API_URL,
         {
-          model: 'aurora',
+          model: 'grok-2-image-1212',
           prompt: `A stunning photorealistic image of ${destination}, showcasing its iconic landmarks and vibrant culture, suitable for a travel itinerary.`,
           n: 1,
           size: '1024x768', // 4:3 aspect ratio, matches Grok's default
