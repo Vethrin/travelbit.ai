@@ -98,7 +98,7 @@ app.post('/generate-itinerary', async (req, res) => {
     const grokResponse = await axios.post(
       XAI_API_URL,
       {
-        model: 'grok-beta',
+        model: 'grok-3',
         messages: [
           { role: 'system', content: 'You are a travel planning expert specializing in personalized trips.' },
           { role: 'user', content: prompt },
